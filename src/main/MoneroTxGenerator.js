@@ -1,9 +1,12 @@
 const monerojs = require("monero-javascript");
 const BigInteger = monerojs.BigInteger;
+const MoneroUtils = monerojs.MoneroUtils;
+const MoneroDestination = monerojs.MoneroDestination;
+const MoneroTxConfig = monerojs.MoneroTxConfig;
 
 // configuration
 const MAX_OUTPUTS_PER_TX = 16;  // maximum outputs per tx
-const MAX_OUTPUT_GROWTH = 25;   // avoid exponential growth of wallet's outputs by maximizing creation of new outputs until enough to stay busy, then sweeping individually
+const MAX_OUTPUT_GROWTH = 40;   // avoid exponential growth of wallet's outputs by maximizing creation of new outputs until enough to stay busy, then sweeping individually
 
 /**
  * Generates transactions on the Monero network using a wallet.
@@ -113,11 +116,11 @@ class MoneroTxGenerator {
         // skip if output is too small to cover fee
         let numDsts = Math.min(outputsToCreate, MAX_OUTPUTS_PER_TX - 1);
         expectedFee = expectedFee.multiply(new BigInteger(numDsts));
-        expectedFee = expectedFee.multiply(new BigInteger(10));  // increase fee multiplier for multi-output txs
+        expectedFee = expectedFee.multiply(new BigInteger(10));  // increase fee multiplier for multi-output txs   // TODO: improve fee estimation
         if (output.getAmount().compare(expectedFee) <= 0) continue;
 
         // build tx configuration
-        let amtPerSubaddress = output.getAmount().subtract(expectedFee).divide(new BigInteger(numDsts));  // amount to send per subaddress, one output used for change
+        let amtPerSubaddress = output.getAmount().divide(new BigInteger(2)).divide(new BigInteger(numDsts));  // amount to send per subaddress, one output used for change
         let dstAccount = output.getAccountIndex() === 0 ? 1 : 0;
         let destinations = [];
         for (let dstSubaddress = 0; dstSubaddress < numDsts; dstSubaddress++) {
